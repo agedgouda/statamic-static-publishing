@@ -1,0 +1,11 @@
+{
+    "name": "agedgouda/statamic-static-publishing",
+    "description": "Edit a Statamic site in the Control Panel on a small server and publish it as a static site on GitHub Pages or Cloudflare Pages.",
+    "license": "MIT",
+    "extra": {
+        "statamic": {
+            "name": "Static Publishing",
+            "description": "Control Panel edits are committed to git and published as a static site."
+        }
+    }
+}

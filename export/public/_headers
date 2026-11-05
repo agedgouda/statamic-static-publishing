@@ -1,0 +1,9 @@
+# Cloudflare Pages cache rules. Ignored by the PHP server.
+
+# Vite output has content hashes in the file names, so it never changes in place.
+/build/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Editors can replace an image under the same name, so cache for a day.
+/assets/*
+  Cache-Control: public, max-age=86400

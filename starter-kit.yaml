@@ -1,0 +1,26 @@
+dependencies:
+  statamic/ssg: ^4.2
+
+export_paths:
+  - app/ContentPublishing
+  - app/Console/Commands/PublishContent.php
+  - app/Console/Commands/UpdateContent.php
+  - app/Providers/ContentPublishingServiceProvider.php
+  - config/content_publishing.php
+  - config/statamic/ssg.php
+
+modules:
+  host:
+    prompt: 'Where should the public site be hosted?'
+    skip_option: false
+    default: github
+    options:
+      github:
+        label: 'GitHub Pages'
+        export_paths:
+          - .github/workflows/deploy-github-pages.yml
+      cloudflare:
+        label: 'Cloudflare Pages'
+        export_paths:
+          - .github/workflows/deploy-cloudflare-pages.yml
+          - public/_headers

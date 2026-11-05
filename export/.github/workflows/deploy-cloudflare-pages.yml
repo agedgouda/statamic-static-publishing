@@ -1,0 +1,72 @@
+name: Deploy to Cloudflare Pages
+
+# Needs, under the repo's Settings → Secrets and variables → Actions:
+#   secrets   CLOUDFLARE_API_TOKEN   (token with the "Cloudflare Pages: Edit" permission)
+#             CLOUDFLARE_ACCOUNT_ID
+#   variables CLOUDFLARE_PROJECT     (the Pages project name)
+#             SITE_URL               (e.g. https://example.com)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: production
+      APP_DEBUG: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Create environment file
+        run: |
+          cp .env.example .env
+          php -r "file_put_contents('.env', preg_replace('/^APP_KEY=.*$/m', 'APP_KEY=base64:'.base64_encode(random_bytes(32)), file_get_contents('.env')));"
+
+      - name: Install PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Build front-end assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Generate static site
+        env:
+          APP_URL: ${{ vars.SITE_URL }}
+          SSG_FAILURES: errors
+        run: php please ssg:generate
+
+      # Cloudflare Pages serves 404.html for missing pages.
+      - name: Prepare output
+        run: |
+          dir=storage/app/static
+          if [ -f "$dir/404/index.html" ] && [ ! -f "$dir/404.html" ]; then
+            cp "$dir/404/index.html" "$dir/404.html"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy storage/app/static --project-name=${{ vars.CLOUDFLARE_PROJECT }} --branch=main
